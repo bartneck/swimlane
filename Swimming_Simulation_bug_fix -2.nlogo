@@ -431,7 +431,7 @@ to swim
 
     if target = 0 [                      ;overtake1  ;  if the player is swimming from left to right
     if xcor < ( simulation-length - 1 ) [                                                                        ; if the player is not at the end of the lane
-        let turtle-front turtles-on patch-at 2 0                                                                 ;
+        let turtle-front turtles-on patch-at 1 0                                                                 ;
         ifelse not any? turtles-on patch-at 0 1 or ([target] of turtle-front != target and any? turtle-front ) [ ;
           set next-move-x 1
           set next-move-y 1
