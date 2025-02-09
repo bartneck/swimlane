@@ -30,6 +30,8 @@ globals [                       ; Declare global variables
 
   swimmer1speed                 ; used to compare two swimmers in a collision
   swimmer2speed
+  swimmer1index
+  swimmer2index
   previous-index-speed
 
   swimmer-speed                 ; will contain the speed of the swimmer we're currently considering
@@ -43,9 +45,15 @@ globals [                       ; Declare global variables
   numberSwimmersInLaneList      ; contains a list of the swimmer distribution amoung lanes (e.g. a 4 lane pool has: lane 1 and 2 with 5 swimmers, and the rest are empty. Then the list is [5, 5, 0, 0])
   numberSwimmersInLane          ; how many swimmers are in the lane we're considering
 
-  variabilitySpeedInPool        ; contains the variability of swimmer speed in the whole pool
-  variabilitySpeedInLane        ; what's the variability of the swimmer speeds in a given lane
-  variabilitySpeedInLaneList    ; the above variable is pushed into this in the requried laneID slot
+  swimmerSpeedsInEachLane           ; This is a list where each entry contains a list of swimmer speeds in the lane corrosponding with the index.
+
+  variabilitySpeedInPool        ; contains the range of swimmer speed in the whole pool
+  variabilitySpeedInLane        ; what's the range of the swimmer speeds in a given lane
+  variabilitySpeedInLaneList    ; List of ranges per lane
+
+  varianceSpeedInPool
+  varianceSpeedInLane
+  varianceSpeedInLaneList
 
   averageSpeedInLane            ; average speed in the lane we're on
   averageSpeedInLaneList        ; list of average speeds per lane
@@ -53,7 +61,7 @@ globals [                       ; Declare global variables
   missInLaneUntilNowList        ; near misses in each lane
   missInLaneUntilNow            ; near misses in the lane we're currently considering
 
-
+  setupComplete
 ]
 
 
@@ -84,7 +92,7 @@ turtles-own [
 to setup
   clear-all
   clear-output
-
+  set setupComplete false
   set minutes 0                       ; Set the time_elapsed to be zero
   print("*******New Run********")     ; Print new run, let's us seperate data
                                       ; set up defualt values:
@@ -112,7 +120,7 @@ to setup
   set missInLaneUntilNowList [0 0 0 0 0 0 0 0 0 0]
 
   create-or-remove-swimmers
-
+  set setupComplete true
   reset-ticks
 end
 to create-or-remove-swimmers
@@ -175,8 +183,8 @@ to create-or-remove-swimmers
         set lane (1 + (floor ((index-speed) / swimmers-per-lane)))       ; Index speed is directly related to swimmer speed, so this allocates the lane based on speed, it lots of 1 [swimmers-per-lane]. Hence, the slowest 1 [swimmers-per-lane] are in lane 1, and the fasest 1 [swimmers-per-lane] are in the final lane
                                                                         ; index-speed is defined at the start of the loop iteration to be i-speed, every loop i-speed increases by 1. So as the loop count increases, this variable increases, each time it incrases by 1 swimmers-per-lane, it increases by 1
 
-        let random-patch one-of available-patches with [pycor > 0 + (lane - 1) * 4 and pycor <= lane * 4]   ; Select a random empty patch from the lane selected above
-
+        let random-patch one-of available-patches with [pycor > 0 + (lane - 1) * 4 and pycor <= lane * 4 and (count [turtles-at 0 0] of patch pxcor pycor) = 0]   ; Select a random empty patch from the lane selected above
+        ;        set available-patches remove-item random-patch available-patches
         setxy [pxcor] of random-patch [pycor] of random-patch                                              ; Alocate the swimmer's to this lane, in a similar way as done in the random allocation method.
         set ybottom 1 + (floor (ycor / 4) )* 4
         set lane-ID 1 + floor ((ybottom - 1) / 4)
@@ -209,7 +217,7 @@ to create-or-remove-swimmers
         ask turtles with [index-speed = swimmer-index-speed] [                                             ; this block lets us define the parameters of the specific swimmer we selected
           set lane-ID lane-number                                                                                         ; place the swimmer in the lane we're currently on
           set ybottom (lane-ID - 1) * 4 + 1                                                                                ; define the bottom y index based on the lane we're in
-          let random-patch one-of available-patches with [pycor > 0 + (lane-number - 1) * 4 and pycor <= lane-number * 4]  ; select an empty patch in the lane
+          let random-patch one-of available-patches with [pycor > 0 + (lane-number - 1) * 4 and pycor <= lane-number * 4 and (count [turtles-at 0 0] of patch pxcor pycor) = 0]  ; select an empty patch in the lane
           setxy [pxcor] of random-patch [pycor] of random-patch                                                           ; then place the swimmer on that tile
           ifelse ybottom > numberOfLanes * 4 [                          ; If the y-cord of the bottom of the lane is greater than the max y-cord in the first pool
             set simulation-length round (item 1 lanes-length / 2)       ; Then set the simulation length to be the rounded value of (the second item in lanes-length / 2). Basically places the swimmer in the second pool
@@ -268,7 +276,7 @@ to create-or-remove-swimmers
           ]
         ]
 
-        let random-patch one-of available-patches with [pycor > 0 + (final-index - 1) * 4 and pycor <= final-index * 4] ; select an availiable patch from the lane we selected in the above while loop
+        let random-patch one-of available-patches with [pycor > 0 + (final-index - 1) * 4 and pycor <= final-index * 4 and (count [turtles-at 0 0] of patch pxcor pycor) = 0] ; select an availiable patch from the lane we selected in the above while loop
 
         setxy [pxcor] of random-patch [pycor] of random-patch             ; Place the swimmer like we did for the previous two methods
         set ybottom 1 + (floor (ycor / 4) )* 4
@@ -283,19 +291,27 @@ to create-or-remove-swimmers
       ]
     ]
 
-    set numberSwimmersInLaneList [0 0 0 0 0 0 0 0 0 0]     ; there can be up to 10 lanes, and they each start off empty
-    set averageSpeedInLaneList [0 0 0 0 0 0 0 0 0 0]
+    set numberSwimmersInLaneList   [0 0 0 0 0 0 0 0 0 0]     ; there can be up to 10 lanes, and they each start off empty
+    set averageSpeedInLaneList     [0 0 0 0 0 0 0 0 0 0]
     set variabilitySpeedInLaneList [0 0 0 0 0 0 0 0 0 0]
+    set varianceSpeedInLaneList    [0 0 0 0 0 0 0 0 0 0]
+    set swimmerSpeedsInEachLane    [[] [] [] [] [] [] [] [] [] []]
     let i 0                                                     ; start at index 0
 
     while [i < max [lane-ID] of turtles] [                      ; While we haven't added swimmers to every required lane:
       set numberSwimmersInLaneList replace-item i numberSwimmersInLaneList (count turtles with [lane-ID = i + 1])                ; replace the 0 in the list numberSwimmersInLaneList with the number of swimmer currently in this lane
       set averageSpeedInLaneList replace-item i averageSpeedInLaneList ((round ( 1000 * (100 / (mean [top-speed] of turtles with [lane-ID = i + 1])))) / 1000 )   ; Find the mean speed in this lane, and add this to the list of mean swim speeds
       set variabilitySpeedInLaneList replace-item i variabilitySpeedInLaneList ( abs (round ( 1000 * ((100 / (max [top-speed] of turtles with [lane-ID = i + 1])) - (100 / (min [top-speed] of turtles with [lane-ID = i + 1]) )))) / 1000 )   ; Find the variability of the swimmer speed in this lane, and add this to the lsit of variability
+      set swimmerSpeedsInEachLane replace-item i swimmerSpeedsInEachLane ([top-speed] of turtles with [lane-ID = i + 1])
+;      print("speeds in lane")
+;      print([top-speed] of turtles with [lane-ID = i + 1])
+;      set varianceSpeedInLaneList replace-item i varianceSpeedInLaneList ((variance [top-speed] of turtles with [lane-ID = i + 1]))
       set i i + 1   ; Increment this index we're looking at
     ]
     set variabilitySpeedInPool ( abs (round ( 1000 * ((100 / (max [top-speed] of turtles)) - (100 / (min [top-speed] of turtles) )))) / 1000 )   ; Find the variability of the swimming speeds of all the swimmers
-
+;    set varianceSpeedInPool ((variance [top-speed] of turtles))
+;    print(varianceSpeedInLaneList)
+;    print(swimmerSpeedsInEachLane)
   ]
 
   if current-swimmers > numberSwimmersInPool [               ; If we have too many swimmers
@@ -341,6 +357,7 @@ to go
   create-or-remove-swimmers
   ifelse debugSetup [         ; if we're only testing the setup, then end the program now, if it made it this far!
     print("great success")
+    print(swimmer1Speed)
     stop
   ] [                               ; if not, then run the simulation
     set previous-collisons crashID
@@ -355,7 +372,7 @@ to go
     set averageSpeedInLane item (laneID - 1) averageSpeedInLaneList
     set numberSwimmersInLane item (laneID - 1) numberSwimmersInLaneList
     set missInLaneUntilNow item (laneID - 1) missInLaneUntilNowList
-    set crashAtWall 0
+;    set crashAtWall 0
 
     ; Move turtles based on their speed
     ask turtles [
@@ -402,15 +419,19 @@ to swim
       ifelse xcor = ( simulation-length - 1 ) and not any? turtles-on patch-at 0 -1 [ ; If there are no swimmers below you, the move down (this is part of the turn around process)
         set next-move-y -1                                                           ; Then tell the swimmer to move down
       ] [
-          if carefulAtWall = false and xcor = simulation-length - 1 [                 ; If the swimmer is not carefull at the wall, and they're at the end of the lane, given they haven't moved down because there was a swimmemr below them
+          if carefulAtWall = false and xcor = simulation-length - 1 [                 ; If the swimmer is not carefull at the wall, and they're at the end of the lane, they will try to move down and turn arround, but there is a swimmer on that patch, so they collide
+            set swimmer1speed (round (1000 * (100 / top-speed))) / 1000               ; create speed variables for the two colliding swimmers
+;            set swimmer2speed (round (1000 * (100 / max [top-speed] of turtles-on patch-at 0 -1))) / 1000
+            set swimmer1index index-speed                                             ; Id the colliding swimmers
+;            set swimmer2index max [index-speed] of turtles-on patch-at 0 -1
             set crashAtWall crashAtWall + 1                                           ; Increment the number of wall crashes by 1
             find-lane                                                                 ; This function call resets the swimmer's laneID based on yBottom
             set crashID crashID + 1                                                   ; Increment total number of crashes
-          ]
+        ]
       ]
       if xcor = simulation-length [                                                   ; If the swimmer has reached the end of the lane, then it:
         set next-move-y -1                                                            ; must move down
-        set next-move-x -1                                                            ; and turn around
+        set next-move-x -0    ;Changed this from -1 to 0. If we're at the y-coordinate we need to be in for this block to run, then we don't want to move diagonally, we just want to move down.                                                        ; and turn around
         set target 1                                                                  ; Then it's new target is the other side of the pool (the left side)
       ]
     ]
@@ -435,8 +456,14 @@ to swim
 
           set missInPoolUntilNow-flag 1            ; Flag that something has gone down
         ] [                 ; else
-          set next-move-x 1 ; keep moving forward
-          set next-move-y 0
+          ifelse [target] of turtle-front = target and any? turtle-front  [ ; if there is a swimmer in your way, and you can't move back out of the middle row, then we need to stop and wait
+            set next-move-x 0 ; Hence stop
+            set next-move-y 0
+          ][
+            set next-move-x 1 ; else, keep moving forward
+            set next-move-y 0
+          ]
+
         ]
       ]
       if xcor = ( simulation-length - 1 )[ ; if we've nearly reached the end of the pool, then keep moving forward
@@ -453,8 +480,15 @@ to swim
 
           set missInPoolUntilNow-flag 1       ; flag that something happened
         ] [                    ; else
-          set next-move-x -1   ; just keep swimming from right to left
-          set next-move-y 0
+          ifelse [target] of turtle-front = target and any? turtle-front  [ ; if there is a swimmer in your way, and you can't move back out of the middle row, then we need to stop and wait
+            set next-move-x 0 ; Hence stop
+            set next-move-y 0
+          ][
+            set next-move-x -1 ; else, keep moving forward
+            set next-move-y 0
+          ]
+;          set next-move-x -1   ; just keep swimming from right to left
+;          set next-move-y 0
         ]
      ]
       if xcor = 2[        ; if the swimmer is at the end, then keep swimming towards the lefthandside
@@ -471,8 +505,14 @@ to swim
     ][
       ifelse xcor = 2 and not any? turtles-on patch-at 0 1 [ ; if we have reached the lefthand side, and there are not any swimmers directly above us, then
         set next-move-y 1                                   ; move up
+;        set next-move-x -1
       ] [                                          ; else
-          if carefulAtWall = false and xcor = 2 [  ; if we're not careful at the wall, and we haven't moved up, then we swim into the wall, and must update collision data
+
+        if carefulAtWall = false and xcor = 2 [  ; if we're not careful at the wall, and there is a swimmer on the patch we need to go to, then we aven't checked if they're there, and will thus collide, and must update collision data
+            set swimmer1speed (round (1000 * (100 / top-speed))) / 1000      ; create speed variables for the two colliding swimmers
+;            set swimmer2speed (round (1000 * (100 / max [top-speed] of turtles-on patch-at 0 1))) / 1000
+            set swimmer1index index-speed
+;            set swimmer2index max [index-speed] of turtles-on patch-at 0 1
             set crashAtWall crashAtWall + 1
             find-lane
             set crashID crashID + 1
@@ -480,7 +520,7 @@ to swim
       ]
       if xcor = 1 [       ; if the xcordinate is 1, then we need to make the swimmer turn around
         set next-move-y 1 ; so start swimming from left to right
-        set next-move-x 1 ; move up
+        set next-move-x 0 ; move up, changed from 1 to 0, as we shouldn't be moving diagonally here
         set target 0      ; and set the target to be the righthand side
       ]
      ]
@@ -495,14 +535,15 @@ to swim
     let turtles-on-patch turtles-on patch-at next-move-x next-move-y ; store information on the swimmer(s) infront of you
     let max-speed-of-others max [top-speed] of turtles-on-patch
 
-
+;     If your patience is 100, then the following should never be true, because for some positive ints say x & y: y + (100 * x) / 100 = y + x > x
+;    The function works by taking the speed of the swimmer blocking you, and comparing how much slower it is compared to your patience. Effectively, it takes your speed and adds an offset based on your patience level and the speed of the swimmer in your way, then if this is
     ifelse max-speed-of-others > top-speed + ((patiencePercentage * max-speed-of-others) / 100)  [   ; if the swimmer(s) max speed is greater than your max speed + some function of your patience, essentially, if we lose patience then
     if target = 0 [                                  ; if you're swimming to the righthand side
-        ifelse xcor < ( simulation-length - 2 ) [    ; if you're not at the end of the land
+        ifelse xcor < ( simulation-length - 2 ) [    ; if you're not at the end of the lane
           ifelse ycor <= ybottom + 1 [               ; and you're in the midle of botom row
-            if ycor = ybottom + 1 [                 ; if you're in the middle row
-              set next-move-y 0                     ; then keep moving to the right
-              set next-move-x 1
+            if ycor = ybottom + 1 [                  ; if you're in the middle row
+              set next-move-y 0                      ; then keep moving to the right
+              set next-move-x 1 ; why does this make sense my man.
             ]
           ] [                 ; else, we're in the top row
             let turtles-in-midle turtles-on patches with [pycor = my-ybottom + 1 and pxcor >= my-xcor and pxcor <= my-xcor + range-swimmer-view ] ; are there any swimmers on the patchs in the range from you're x-coordinate, and the end of the sight distance, in the middle row
@@ -596,6 +637,8 @@ to swim
       find-lane                                                       ; find the lane they're in
       set swimmer1speed (round (1000 * (100 / top-speed))) / 1000      ; create speed variables for the two colliding swimmers
       set swimmer2speed (round (1000 * (100 / max [top-speed] of turtles-on patch-at next-move-x next-move-y))) / 1000
+      set swimmer1index index-speed
+      set swimmer2index max [index-speed] of turtles-on patch-at next-move-x next-move-y
       set crashInLaneList replace-item (lane-ID - 1) crashInLaneList (item (lane-ID - 1) crashInLaneList + 1) ; update the number of crashes
       set collision-midle-lane collision-midle-lane + 1
       set collision-flag true                                                       ; flag that a collision has occured
@@ -796,7 +839,7 @@ numberOfLanes
 numberOfLanes
 1
 10
-1.0
+10.0
 1
 1
 NIL
@@ -811,7 +854,7 @@ numberLanesPool2
 numberLanesPool2
 0
 10 - numberOfLanes
-6.0
+0.0
 1
 1
 NIL
@@ -866,7 +909,7 @@ CHOOSER
 allocation
 allocation
 "random" "logic" "clustering"
-1
+0
 
 CHOOSER
 217
@@ -886,7 +929,7 @@ CHOOSER
 swimmingStyle
 swimmingStyle
 "back" "breast" "fly" "free" "IM"
-0
+1
 
 PLOT
 62
@@ -924,7 +967,7 @@ INPUTBOX
 405
 166
 patiencePercentage
-0.0
+5.0
 1
 0
 Number
@@ -958,7 +1001,7 @@ SWITCH
 788
 carefulAtWall
 carefulAtWall
-0
+1
 1
 -1000
 
@@ -978,7 +1021,7 @@ INPUTBOX
 232
 167
 numberSwimmersInPool
-60.0
+300.0
 1
 0
 Number
@@ -1046,6 +1089,32 @@ This leads us to need logic for swimmers in the middle row:
 
 * Middle Row: The swimmer is overtaking, so they must keep swimming in the direction allocated by their target parameter, until they have passed the slower swimmer, or there is a swimmer on the patch in front of them, with an opposing target. If either of these conditions are met, then the swimmer will move back into the appropriate row. If this was for the latter reason, then a collision is likely to occur, as the swimmer moves regardless of whether there is a swimmer in the way. Hence, the movement is flagged, so that near misses can be counted later.
 
+### Overtaking logic:
+1) Pre overtake
+
+1.1) Swimmer A checks if Swimmer B is in the way
+
+1.2) Compare each swimmer's speed, and if Swimmer B is too slow, and Swimmer A is too impatient, and the swimmers are not at the end of the lane, then swimmer A attempts to overtake. 
+
+1.3) At the end of the lane, the swimmer will attemt to move like the following diagram:  
+0:2:0,|,3:0:1						
+1:0:3,|,0:2:0
+moving diagonally into the middle row, before to the bottom/top row. If 	Swimmer B is at postion two, and swimmer A is at postion 1, then Swimmer A can't overtake. Instead, Swimmer A will continue swimming straight. If instead Swimmer A is at the lanes corner (between position 1 and 2), then if has no where to swim, as Swimmer B is in the way at position 2, so Swimmer A stops swimming for this time step. 
+
+1.4) If Swimmer A is already in the middle row, then just keep swimming. This feels odd, since if Swimmer B is infront, it is in the way, and there should be no space for swimmer A, so it should stop swimming until there is space?
+
+1.5) Check for swimmers on the middle lane within your sight distance. For backstroke swimmers sight distance includes the tile directly next to you. i.e. at the same x-coordinate as you.
+
+1.6) If there is a swimmer within Swimmer A's sightdistance, and it is swimming in the apposite direction as swimmer A, then swimmer A does not overtake. If it is swimming the same direction, or there are no swimmers within Swimmer A's sight distance, then swimmer A will move down into the middle row to overtake.
+
+2) During overtake
+
+2.1) Each time swimmer A is updated, it checks if there is an empty tile above it, and if there is, then it moves up and has finished overtaking. 
+
+2.2) Swimmer A also checks for swimmers on the tile infront of it, and if there are any apposing swimmers, then swimmer A moves out of the middle row regardless of whether there are any swimmers in the way. This can result in collisions occuring in rows other than the middle
+
+2.3) If there is no space above, and there are no apposing swimmers, then Swimmer A continues forward in the middle row.
+
 ### Collision logic:
 To check for collisions, the program looks at where the swimmer will be on the next tick, based on the movement determined by the above swimming logic, and checks to see if that patch will be empty. If it is empty, then if the swimmer moved out of the middle row to avoid a collision, then there was a near miss.
 Otherwise, if the patch is not empty, and the swimmer is initially in the middle row, the swimmers are moving in opposing directions, and have not collided yet, then they must collide. Hence, the number of collisions  in the middle row is incremented. If the collision occurs at either end of the pool, then the number of collisions at the wall is also incremented. These are later used in the record-collisions function, to update the relevant independent variables.
@@ -1085,7 +1154,6 @@ Code initially by: XXXX (XXXX, XXXX)
 Debugged by: Jethro Ware (November 2024)
 Documentation and comments by: Jethro Ware (December 2024)
 Project leader: Dr Christoph Bartneck
-
 @#$#@#$#@
 default
 true
@@ -2966,6 +3034,101 @@ NetLogo 6.4.0
       <value value="&quot;clustering&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="numberOfLanes">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="numberSwimmersInPool" first="40" step="1" last="250"/>
+  </experiment>
+  <experiment name="experiment" repetitions="1" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <exitCondition>setupComplete = true</exitCondition>
+    <metric>variabilitySpeedInPool</metric>
+    <metric>variabilitySpeedInLaneList</metric>
+    <metric>averageSpeedInLane</metric>
+    <metric>averageSpeedInLaneList</metric>
+    <runMetricsCondition>setupComplete = true</runMetricsCondition>
+    <enumeratedValueSet variable="debugSetup">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="poolLength">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gender">
+      <value value="&quot;male&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="patiencePercentage">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="simulationDuration">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lengthOfPool2">
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="allocation">
+      <value value="&quot;random&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numberLanesPool2">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="carefulAtWall">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numberOfLanes">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="swimmingStyle">
+      <value value="&quot;back&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numberSwimmersInPool">
+      <value value="100"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="SL_25_10_free (copy)" repetitions="5" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <exitCondition>minutes = simulationDuration * 60</exitCondition>
+    <metric>swimmerSpeedsInEachLane</metric>
+    <runMetricsCondition>minutes = simulationDuration * 60</runMetricsCondition>
+    <enumeratedValueSet variable="gender">
+      <value value="&quot;male&quot;"/>
+      <value value="&quot;female&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="swimmingStyle">
+      <value value="&quot;IM&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="poolLength">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="simulationDuration">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numberLanesPool2">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lengthOfPool2">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="carefulAtWall">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="patiencePercentage">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="allocation">
+      <value value="&quot;logic&quot;"/>
+      <value value="&quot;random&quot;"/>
+      <value value="&quot;clustering&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="numberOfLanes">
+      <value value="1"/>
+      <value value="2"/>
+      <value value="3"/>
+      <value value="4"/>
+      <value value="5"/>
+      <value value="6"/>
+      <value value="7"/>
+      <value value="8"/>
+      <value value="9"/>
       <value value="10"/>
     </enumeratedValueSet>
     <steppedValueSet variable="numberSwimmersInPool" first="40" step="1" last="250"/>
