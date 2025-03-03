@@ -163,9 +163,9 @@ to create-or-remove-swimmers
 
       set index-speed i-speed                                                                     ; The swimmers are ordered from slowest to fastest, so this variable is directly related to the speed of the swimmer
       set color rgb (9000 / top-speed) 0 0                                                        ; sets the colour based off speed
-      if i-speed = numberSwimmersInPool - 10 [ ; this is for debuggin purposes. Used so you can watch a specific swimmer
-        set color rgb 48 252 3
-      ]
+;      if i-speed = numberSwimmersInPool - 10 [ ; this is for debuggin purposes. Used so you can watch a specific swimmer
+;        set color rgb 48 252 3
+;      ]
       if allocation = "logic" [                                                   ; logically allocates swimmer location
 
         let swimmers-per-lane ceiling ((count turtles) / (numb-lanes))            ; We want equal numbers of swimmers per lane, so take the ceiling of the number of swimmers, and the number of lanes. This is the number of swimmers per lane
@@ -414,16 +414,16 @@ to swim
   let missInPoolUntilNow-flag 0
 
 
-  ifelse collision-flag = true [
-    set color rgb 227 0 0
-  ] [
-    ifelse target = 0 [ ; this is for debugging purposes. Used so you can watch collisions
-      set color rgb 48 252 3
-    ] [
-      set color rgb 3 48 252
-    ]
-  ]
-
+;  ifelse collision-flag = true [
+;    set color rgb 227 0 0
+;  ] [
+;    ifelse target = 0 [ ; this is for debugging purposes. Used so you can watch collisions
+;      set color rgb 48 252 3
+;    ] [
+;      set color rgb 3 48 252
+;    ]
+;  ]
+;
   if ycor = ybottom + 2 [  ; At the top row
     set target 0           ; Then the target of the swimmer should be the righthand side of the pool
     set next-move-x 1
@@ -600,7 +600,7 @@ to swim
 ]
   ifelse not any? turtles-on patch-at next-move-x next-move-y [                           ; if there aren't any swimmers in where we want to move, then:
     if missInPoolUntilNow-flag = 1 and next-move-y != 0 and collision-flag = false [      ; if something is happening, we're changing rows, and haven't collided with anything
-      if any? turtles-on patch-at next-move-y 0  [                                        ; then if there are any swimmers on the on the patch next-move-y in the x direction from the swimmer
+      if any? turtles-on patch-at next-move-y 0  [                                        ; then if there are any swimmers on the on the patch next-move-y in the x direction from the swimmer. i.e. if there was a swimmer infront of you when you moved out of the middle row
         if collision-flag = [collision-flag] of one-of turtles-on patch-at next-move-y 0  and max [target] of turtles-on patch-at next-move-y 0 != target [ ; if one of the swimmers on the patch described above, and the largest target of the swimmers on this patch is not our target (as there should't be more than one swimmer on this patch, then these checks should be checking the same swimmer)
               set missInPoolUntilNow missInPoolUntilNow + 1                                                                               ; then we did not colide
               set missInLaneUntilNowList replace-item (lane-ID - 1) missInLaneUntilNowList (item (lane-ID - 1) missInLaneUntilNowList + 1) ; so update the relevant statistics
@@ -632,10 +632,6 @@ to swim
       set collision-midle-lane collision-midle-lane + 1
       set collision-flag true                                                       ; flag that a collision has occured
 
-      if next-move-y != 0 [
-        print("wtf")
-      ]
-
       if (xcor = simulation-length - 1 and target = 1) or (xcor = 2 and target = 0)  ; if they're at the wall, then increment the number of crashes at the wall
       [
         set crashAtWall crashAtWall + 1
@@ -653,9 +649,9 @@ to swim
       set number-tours number-tours + 1 ; increment the number of lanes we've swum
       set time-save secondes            ; save the current time stamp
   ]
-  if collision-flag = true [
-    set color rgb 227 0 0
-  ]
+;  if collision-flag = true [
+;    set color rgb 227 0 0
+;  ]
 end
 
 to record-collisions
