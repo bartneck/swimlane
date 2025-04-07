@@ -1,0 +1,36 @@
+testing_var_per_lane_clustering_v2.csv
+variance of variances
+[np.float64(612.1223570294566), np.float64(2950.042457818369), np.float64(2001.5570409712677), np.float64(4035.5043884480883), np.float64(12976.113333079405), np.float64(3008.6644614107154), np.float64(2788.1337873736693), np.float64(2781.482629417561), None, None]
+
+average of variances
+[np.float64(20.17651553369693), np.float64(35.49730619173456), np.float64(35.52669158054521), np.float64(41.04426548384875), np.float64(67.7601053748149), np.float64(30.096439104557152), np.float64(32.187948481859046), np.float64(27.75575896100188), None, None]
+
+max and min of variances, in form (minVar, maxVar)
+[(np.float64(0.0), np.float64(277.5833333333333)), (np.float64(0.0), np.float64(775.7329545454545)), (np.float64(0.0), np.float64(511.19113573407213)), (np.float64(0.0), np.float64(603.3950617283949)), (np.float64(0.0), np.float64(709.9822222222222)), (np.float64(0.0), np.float64(758.8512709572741)), (np.float64(0.0), np.float64(599.5802469135801)), (np.float64(0.0), np.float64(627.7612456747405)), None, None]
+testing_var_per_lane_logic.csv
+variance of variances
+[np.float64(43.103789209715266), np.float64(18.261898200847703), np.float64(15.994920144672516), np.float64(14.749962287270625), np.float64(28.86441066555724), np.float64(96.18894620848664), np.float64(370.5824721288133), np.float64(36669.53722010968), None, None]
+
+average of variances
+[np.float64(15.897102996044886), np.float64(8.53581096846042), np.float64(7.277069647489602), np.float64(7.371985659308428), np.float64(9.275535529981367), np.float64(14.750302516856175), np.float64(34.21362818783777), np.float64(450.326173167972), None, None]
+
+max and min of variances, in form (minVar, maxVar)
+[(np.float64(1.109375), np.float64(94.64000000000001)), (np.float64(0.9375), np.float64(68.56)), (np.float64(0.4), np.float64(39.6)), (np.float64(0.5), np.float64(42.22222222222222)), (np.float64(0.12244897959183673), np.float64(84.4)), (np.float64(0.25), np.float64(208.64000000000001)), (np.float64(1.1875), np.float64(266.96)), (np.float64(17.138888888888886), np.float64(1438.25)), None, None]
+testing_var_per_lane_random.csv
+variance of variances
+[np.float64(145218.4001092362), np.float64(147381.6194903371), np.float64(144021.04434009653), np.float64(154736.73560272064), np.float64(166407.23507765387), np.float64(157384.155301495), np.float64(182437.16738756475), np.float64(150105.43203434927), None, None]
+
+average of variances
+[np.float64(924.3942712952405), np.float64(918.4276200229298), np.float64(921.6236170543193), np.float64(920.3635759573896), np.float64(921.4668060580118), np.float64(932.677147191601), np.float64(931.8685820666827), np.float64(912.0912283241412), None, None]
+
+max and min of variances, in form (minVar, maxVar)
+[(np.float64(38.47222222222222), np.float64(3283.472222222222)), (np.float64(21.2), np.float64(3368.56)), (np.float64(47.984375), np.float64(3446.2448979591836)), (np.float64(18.240000000000002), np.float64(3535.2653061224487)), (np.float64(52.25), np.float64(4997.36)), (np.float64(22.5), np.float64(4750.960000000001)), (np.float64(8.0), np.float64(4323.25)), (np.float64(23.88888888888889), np.float64(4617.5)), None, None]
+old_cluster_var.csv
+variance of variances
+[np.float64(64070.02542038671), np.float64(2752.351465125555), np.float64(4709.656022836932), np.float64(5415.679148761299), np.float64(7626.045806216718), np.float64(12253.077692670706), np.float64(21841.796336345895), np.float64(37230.017842422945), None, None]
+
+average of variances
+[np.float64(70.7431735033422), np.float64(18.989348675019176), np.float64(22.22202242657432), np.float64(25.243063386663312), np.float64(33.65167892713029), np.float64(52.9746226090756), np.float64(103.67890001968478), np.float64(518.1505799666232), None, None]
+
+max and min of variances, in form (minVar, maxVar)
+[(np.float64(0.0), np.float64(2193.21484375)), (np.float64(0.0), np.float64(1091.3776000000003)), (np.float64(0.0), np.float64(729.2100000000002)), (np.float64(0.0), np.float64(723.9504000000001)), (np.float64(0.0), np.float64(759.0263429752067)), (np.float64(0.0), np.float64(739.4815999999998)), (np.float64(0.1875), np.float64(957.2356000000001)), (np.float64(57.839999999999996), np.float64(1445.9506172839508)), None, None]
