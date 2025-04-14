@@ -1,0 +1,248 @@
+Check on reporting of overtaking, they might be counting when they are turning around at the end of the lane
+
+Run set up, collect data on speeds per lane
+
+Check the overtaking behavour, does it check to see if the spot in the middle lane is empty? If so, this could explain backstroke behavour being odd
+
+
+1) Pre overtake
+
+1.1) Swimmer A checks if Swimmer B is in the way
+
+1.2) Compare each swimmer's speed, and if Swimmer B is too slow, and Swimmer A is too impatient, and the swimmers are not at the end of the lane, then swimmer A attempts to overtake. 
+
+1.3) At the end of the lane, the swimmer will attemt to move like the following diagram:  0:2:0,or 3:0:1
+																						  1:0:3    0:2:0
+	moving diagonally into the middle row, before to the bottom/top row. If Swimmer B is at postion two, and swimmer A is at postion 1, then Swimmer A can't overtake. Instead, Swimmer A will continue swimming straight. If instead Swimmer A is at the lanes corner (between position 1 and 2), then if has no where to swim, as Swimmer B is in the way at position 2, so Swimmer A stops swimming for this time step. 
+
+1.4) If Swimmer A is already in the middle row, then just keep swimming. This feels odd, since if Swimmer B is infront, it is in the way, and there should be no space for swimmer A, so it should stop swimming until there is space?
+
+1.5) Check for swimmers on the middle lane within your sight distance. For backstroke swimmers sight distance includes the tile directly next to you. i.e. at the same x-coordinate as you.
+
+1.6) If there is a swimmer within Swimmer A's sightdistance, and it is swimming in the apposite direction as swimmer A, then swimmer A does not overtake. If it is swimming the same direction, or there are no swimmers within Swimmer A's sight distance, then swimmer A will move down into the middle row to overtake.
+
+2) During overtake
+
+2.1) Each time swimmer A is updated, it checks if there is an empty tile above it, and if there is, then it moves up and has finished overtaking. 
+
+2.2) Swimmer A also checks for swimmers on the tile infront of it, and if there are any apposing swimmers, then swimmer A moves out of the middle row regardless of whether there are any swimmers in the way. This can result in collisions occuring in rows other than the middle
+
+2.3) If there is no space above, and there are no apposing swimmers, then Swimmer A continues forward in the middle row.
+
+
+NOTES:
+
+- When spawning swimmers, we can spawn them on top of each other: fixed
+- Number of collisions higher than the number of overtakes? Does this make sense, they should be equal, or collisions should be less. -> For some reason, when the swimmers reach the end of the lane, they're getting confused and instead of moving diagonally into the middle row (when there is space), they are moving down to the final tile. They then get confused again, and move diagonally into the middle row, one tile from the end. This should not happen.
+-> having fixed the above statement, we no longer have swimmers overtaking at the start of the simulation.
+This was occuring because, when the simulation is set up, it can spawn swimmers at the very end of the lane, and because there was a bug in the movement algorithm, it would force them to swim down and across instead of just down. This results in them being in the middle row, but not at the end of the lane, hence an 'overtake' is recorded. 
+The effects of this stopped as the simulation went on, because swimmers are very unlikely to end up in this postion naturally. I.e. swimmers almost never need to swim all the way to the end of the lane.
+
+- there is still something causing additional collisions to be recorded, despite no overtaking. This only occurs when the carefull at wall variable is set to false. This reminds me of when I first read through the code, when I interpreted the code for recording collisions at the wall to record a collision if the swimmer needs to swim forward when one tile from the end, instead of diagonally, regardless of whether there is a swimmer in the way. I will check this. 
+-> note, the crash at wall count is not incremented despite the above statement. However, it doesn't appear like its ever updated. Perhaps the previous debuggin I did in this area stopped problem I first found, but crashes are still technically being recorded, just not being reported as crashes at the wall. Nevermind, crash at wall is being incremented, its just reset imediatly after for some reason? Yes, I can confirm all the extra collisions are occuring at the wall, and that every time 'go' is called, the number of collisions at the wall is reset to 0. It doesn't make sense for this to be the case. Unless the number of collisions is counted by adding crashAtWall, but then why would crashId be updated at the same time? Yeah, I can only confirm that crashAtWall appears to only be a flag variable of sorts, howevery useless.
+-> This simulation's logic is all over the place. crashAtWall must be a flag variable, because it is not used to update the number fo crashes, but it is updated when a crash occurs at the end of the lane in the middle row, and also updated when at the end of the lane when not in the middle row, even though no crash should have occured? I've removed the reset command so that the variable now counts the number of collisions, as we would expect it to do. 
+->I have also temperally removed the code that reports a crash at the wall simply if the swimmer needs to move down to the end of the lane. This can be added back in easily, as its simply commented out; I will discuss this with Dr Bartneck.
+-> I've decided not to remove this code until further discussion, as the functionality of 'carefulAtWall' is up for debate. It propably means that the swimmer is not going to be overlly careful to stop before hitting the wall, and hence collides with the wall, rather than a swimmer. Hence why collisions can be recorded when swimmers have not collided. This lines up with my initial assumption about this part of the code. Becuase of this, I will remove the added data reporting about what two swimmers are involved, as there should only be one swimmer.
+-> I will discuss this with Dr Bartneck in our next meeting, as it does explain the additional crashes that are reported where we previusly though no crashes should occur. The usefulness of 'carefulAtWall' is questionable.
+
+- I will now fix the issue I found where if Swimmer A was overtaking, and there was a Swimmer B in their way, swimming the same direction as Swimmer A, and there was no space for them to move out of the middle lane, then Swimmer A would just keep swimming forward. This would result in two swimmers being on the same tile. I have fixed this by adding an additional check to the logic. The fix works by changing the else statement that was previously called when there was either no space to leave the middle row, or no apposing swimmers to include an iddtional ifelse. This checks if there is a swimmer infront, and if there is, stop, if not, then continue swimming forward. 
+
+- It is now important to address the issue that backstroke swimmers should not be able to check for oncoming swimmers at all. This is going to be a complicated fix, as it might need a rewrite of the collision detection algorithm.
+-> note, IM does not differentiate between what the current swim style is in the cycle, hence any attempt to make this match the backstroke behavour would need a massive rewrite of the simulation. This is not optimal.
+-> I have duplicated the netlogo file before starting this fix, incase something goes catastrophically wrong.
+
+
+10/02/2025
+After meeting with Dr Bartneck, I have removed the feature where swimmers can collide with the wall.
+-Upon investigation, when swimmers collide with each other, they end up stopping and waiting for space to move out of the middle lane. This is because of the code I added that makes it so swimmers will not swim ontop of each other. This is essentially what we want. 
+11/02/2025
+-After going through the code and simulation performance more carefully, I've discovered the above statement is wrong. It is not because of the code I added. Instead, when a swimmer gets in your way in the middle lane, and is aposing, your next move is set to a diagonal move back out of the middle lane. Then later in the swim function, there's a check for swimmers in your way, and if there is, then stop. Hence, what I think is happening, is when a swimmer has collided with another, it is updated to move out of the way, but if there is no space, then it will just stop swimming until space opens up, either ahead, or next to it. 
+-> Note, the swimmers look directly next to them, before moving diagonally. Does this make sense? Maybe. Ask Dr Bartneck about this.
+
+3/03/2025
+
+When swimmers collide, they won't update their position to where they wanted to go, because there is someone in their way. Ther collision-flags are set to true, so they can't be recored as colliding again in the next update, if they haven't disentalged yet. Each time the swim function is called for a swimmer that has collided, it goes through the normal swimming logic, and if there is something it can do without being blocked, then it will do that, and will have its collision-flag reset to false. 
+This means, if there are two swimmers in the middle lane blocking each other, then if one eventually moves out of the middle lane, the other can continue overtaking, even though they have collided.
+
+-> The swimmer is not moved unless there is an empty tile to move to.
+-> The swimmer that has been collided into does not have its collision-flag set to true. This could make sense, as the program will be saying the swimmer collided with a swimmer in one of the side lanes, not the one directly ahead, as they attempt to move out of the middle lane. But after testing the collision detection more closely, it appears to only detect collisions when the next movey is set to 0. This means that it only can collide with swimmers in the middle lane, which doesn't make sense based on the earlier behaviour; where the swimmers try to leave the middle lane. i.e. the swimmers set there next move to be (1, 1) or (-1, -1) if there is an apposing swimmer, yet this never shows up in the collision detection like we would expect. 
+
+9/03/2025
+
+We decided that the sight distance ahead when in the middle lane doesn't matter, and backstroke swimmers can 'sense' swimmers directly infront of them. This simplifies the program significantly. It is possible to add logic for this, but there is a point where simulations get too complex for their own good.
+
+10/03/2025
+
+There is a new error in the setup for the clustering algorithm that caused the simulation to crash during setup.
+
+I believe I've located the error. There is something that causes the additional check we added in the clustering algorithm so they can't be placed on the same tile. This line:
+
+let random-patch one-of available-patches with [pycor > 0 + (final-index - 1) * 4 and pycor <= final-index * 4 and (count [turtles-at 0 0] of patch pxcor pycor) = 0] ; select an availiable patch from the lane we selected in the above while loop
+
+This appears to sometimes not select any tile. I apologise for that, I should have ran the complete setup process again before we tried the simulation. I will find a solution to this and get back to you. 
+
+ On a more positive note, I've constructed a series of flowcharts that explain the swimming logic in a range of details, like we discussed. I just need to make it so they fit to A4, and can be infinitely scaled.
+
+I also added a check that fixes another error, where the second pool could make there be more than 10 lanes. This occurred when the second pool had lanes, and then the first pool had more lanes added to it; the second pool didn't have its lanes reset to match. I've added a simple check that resets this. 
+
+What is going wrong, is that in the clustering method, it is possible for more swimmers to be put in a cluster, than can fit in a lane. This means when netlogo tries to find an empty tile, it doesn't come up wiht anything, producing a nobody object, crashing the setup.
+
+I will modify the clustering algorithm so this cannot occur. To do this I will put a limit on the number of swimmers that can be placed in a cluster. 
+
+I've added a method that takes the cluster you're in, if its full, then move one back, this keeps going until you loop back round ot the one you are supposed to be in. If you reach this, then there is no space, and there is an illegal input.
+
+There is the same problem for random allocation, that occurs when there are more swimmers than places, and thus will also occur for logical allocation. I'm adding a check to make sure there are not too many swimmers. If there are, then set it to the max value. This check should in theory mean the error detection I added in the cluster method should never activate.
+
+1/04/2025
+
+I have added a new moniter, which counts how many swimmers need to be realocated when we use clustering. I am currently working on an analyis on this, to find how it increases as the swimmer density increases. 
+
+The analysis showed that at 100% capactity, there was about 20% of swimmers needing to be realocated, while only 2.5% at 60% capacity. There was no reallocation for less than 60% capactity. See graph in anaylisis folder. 
+
+4/04/2025
+
+The reallocation is significant, so a new method is needed. I have created a new project folder, and duplicated the simulation file into it, before adding a python environment to the folder. I am going to attempt to use the k_means_constrained library for python. This requires 2-D imputs, but we only have 1-dimensional speeds. So I will project the 1-D speeds onto the 2-D plane by adding a 0 in y-direction. e.g. each speed poont will be (v, 0). Then the algorithm should cluster along the line
+
+- Note: the python version in the python envirnoment is 3.12, anything newer than this wis not compatable with the k-means_constrained library.
+
+- note, available-patches isn't actually the patches available throughout the whoe setup. It only is for the firs allcoation, then we just check if there is a swimmer on the random patch we select from it, that's how we determin if it is truly 'available'
+
+-> I have managed to compute and assign clusters to the swimmers, and place them accordingly. This is working quite well. 
+
+-> the next step is to do a simple analyis of the distribution of swimmer speeds that is produced by this algorith. i.e. what is the variation in each lane, is it low like we expect?  Note: this will not be as low as a regular k-means clustering algorithm, given that k-menas minimises the variance, but we are modiifying that to set a maximun cluster size - thereby reducing the variation.
+
+
+5/04/2025
+
+- There is an issue with this implenenatation infortunately. If there are two pools, and each pool have a different lane length, then the max cluster size becomes some weird average, and crashes. I will attempt a solution to this, where we do two different clusterings, where we split the swimmers between the pools dependent on the capacities, and place them accordingly. This somewhat complicates the program, so I will duplicate the simulation so I can restore the current version if needed.
+
+One idea of how to split the swimmers is, split them down the middle, then transfer any swimmers that do not fit in one, to the other.
+
+- I have compelted this, and now everything appears to work. But I will run all the setups to ensure that. 
+
+The way the new clustering algorithm works is as follows (documentation generated by ChatGPT and edited by Jethro Ware):
+
+---
+
+Function: `clustering-alg`**
+**Purpose**:  
+Clusters swimmers into lanes using a constrained k-means algorithm to balance speed distributions while respecting lane capacities.
+
+**Steps**:
+1. **Setup**:
+   - Initializes Python environment and sorts swimmers by speed (`index-speed`).
+   - Calculates number of clusters (equal to total available lanes).
+   - Determines maximum cluster sizes for each pool (based on swimmer count and lane capacity).
+
+2. **Python Clustering Logic**:
+   - Uses `k_means_constrained` and `numpy` for clustering.
+   - Converts swimmer speed to 2D format ([speed, 0]) to comply with k-means input.
+   - Splits swimmers between Pool 1 and Pool 2 (approximately evenly).
+   - Adjusts swimmer distribution if either pool exceeds max capacity (ensures that we don't exceed any capacities).
+   - Defines a helper function `cluster()` to:
+     - Convert swimmer speed data to numpy format.
+     - Run constrained k-means clustering.
+     - Return cluster model, processed speeds, and swimmer indices.
+
+3. **Clustering Execution**:
+   - Runs clustering separately for each pool if that pool has lanes.
+   - Stores the results (`pool_one_info`, `pool_two_info`).
+
+4. **Centroid Adjustment**:
+   - Offsets centroids from Pool 2 to account for lanes used in Pool 1.
+   - Ensures all centroids are on a unified index for visualization and plotting.
+
+5. **Swimmer Placement**:
+   - Calls `placeSwimmersClustering` with appropriate parameters for each pool to assign swimmers to the lanes.
+
+**Notes**:
+- Error handling ensures we can't have too many swimmers
+- Centroid alignment is important for consistent Gumbel distribution plotting later. (this isn't complete, and has minimal importance.)
+
+---
+
+Function: `placeSwimmersClustering [indices centroid_list]`**
+**Purpose**:  
+Assigns swimmers to patches (tiles) based on their clustering results, ensuring placement matches their assigned lanes and avoids overlaps.
+
+**Steps**:
+1. **Available Space Definition**:
+   - Defines a static set of patches that swimmers can occupy (ignores black tiles and certain y-coordinates). Essentially the top and bottom row from every lane
+
+2. **Swimmer Loop**:
+   - Iterates over `indices` (sorted list of swimmers by speed).
+   - For each swimmer:
+     - Determines lane (centroid + 1).
+     - Selects a valid, unoccupied patch within the assigned lane.
+     - Places swimmer on that patch.
+     - Calculates the bottom y-coordinate of the lane for simulation logic.
+     - Sets `simulation-length` based on the swimmer's pool.
+
+3. **Loop Tracking**:
+   - Uses a loop counter (`loop_num`) to sync with `centroid_list`.
+
+**Notes**:
+- The placement process guarantees no two swimmers are placed on the same patch.
+- Differentiates between Pool 1 and Pool 2 when we are placing swimmers in pull 2 by offsetting the centroids calculated for pool 2 by the number of centroids in pool 1.
+
+---
+
+
+
+NOTE: I HAVE FOUND ANOTHER ERROR! It isn't related to the clustering method, but rather any method. The multiple pools functionality has been added poorly. Where, for certian swimmer quantities, as we are near capacity of the two pools, and the two pools have different lane lengths. 
+       - In logical allocation, it assumes every lane is the same length, so calculates the number of swimmers in each lane to simply be the number of swimmers over the number of lanes. But, if there are say 6 lanes 50m long, and 4 laes 25m long, when the program tries to place swimmers into the 25m lane, and there are more than 26 swimmers per lane, then it will fill up the lane, and crash when trying to add the 27th swimmer. 
+       - In random allocation, it is the same issue. It loops through the lanes, each loop randomly selecting a swimmer from the non-allocated swimmers. It keeps doing this until the list of non-allocated swimmers is empty. But what if there are different length lanes? Well, it will do the same thing, but if there are enough swimmers, eventually it will try add a 27th swimmer to a 25m lane. This crashes the program. 
+A solution to this is to do what I did to solve it for clustering, split the swimmers between the pools, and then allocate to each pool from the two different lists of non-allocated swimmers.
+-> This was a problem last time the simulation ran on the uni server farm, but it was not uncoverd. This suggests that the simulation files don't run any instances that create this problem. But, if someone wants to run their own simulations with this program, they might create such a sitution, so it is important to fix this. But it shouldn't effect our simulations, so isn't a time pressing issue.
+
+I have completed an anlysis of the results from different methods of allocation. See file 'swimmerAllocationAnalysis.txt'
+
+Note: Swimming_Simulation_kmeans_constrained V3 is the simulation file that has a complete and working clustering algorithm
+- Swimming_Simulation_kmeans_constrained V4 will contain an attempted fix the error in random allocation described above.
+
+An interesting thing occurs when patience is at 100%. Since no one ever passes, if a lane is near capacity, then after a short period of time, there is a complete traffic jam, and everybody stops. To ensure this does not happen, the max capacity is three less than the actuall maximun. That is because having three less than the max makes there always be one available space, hence allowing (slow) movement.
+- any non-zero patience is likley to lead to this state (but the lower the patience, the longer it takes to arange itself into that equilibrium; and some instances where there are the correct arrangement of swimmers won't reach it), if we are within three of the maximun. Hence, a recommend capacity should be actual max - 3.
+
+Swimming_Simulation_kmeans_constrained V4 now contains a fixed random allocation algorithm. To achieve this, I generalised the swimmer devider functionality described in the clustering method, and generalised the previous random allocation algorithm to place a set number of swimmers between two given lanes; then called this method twice, once for each pool. 
+
+In V5, I will start off by making the clustering method use the generalised function I defined in V4. The general function defines global variables, so I will just read these into the python module. That is complete.
+
+The key feature of V5 will be a fixed logical allocation method, so that it works with two pools of different lengths.
+
+13/04/2025
+
+New logical allocation method documentation (written by Jethro Ware):
+
+Function parameters:
+
+- Takes in a starting and ending index for the swimmers, as well as for the lanes. This allows us to start allocating swimmers from the last one allocated in any previous pools. While the start-lane index allows us to start in any given lane; again allowing seperation between pools.
+
+Local variables:
+
+- available-patches: stores a list of patches we can spawn a swimmer on. This only contains patches in the range of lanes provided by start-lane and end-lane
+
+- num-lanes: stores the number of lanes in the pool we are considering
+- num-swimmers: stores the number of swimmers in the pool we are considering
+
+- swimmers-per-lane: stores the floor of num-swimmers / num-lanes. This needs to be the floor, because the default number of swimmers per lane is the floor, and we just add an extra swimmer while the extras are unacounted for. 
+- restOfSwimmers: stores the remainder of swimmers that aren't accounted for by the swimmers-per-lane figure. This is decremented by 1 each time we place an extra swimmer.
+
+- i: stores the swimmer index, which starts at start-swimmer. In a future version, should change this to be "swimmer"
+- cur-lane: stores the lane we are currently in.
+- j: stores the number of swimmers in the current lane.
+
+Functionality:
+
+There is an outer while loop, which continues until we've allocated all the swimmers. This occurs when the swimmer index value (i) reaches the end-swimmer value, or cur-lane reaches the end lane. Both of these mean the same thing, so in a future version it should be refactored to be only one (see code comment). The best one to use would be cur-lane < end-lane, since the outer loop is the one that is counting the lane, while the inner loop also increments the swimmer-index.
+
+At the start of each loop, we reset the number of swimmers in the cur-lane (j) to be zero. Then we check if there is currently any swimmers that aren't accounted for by swimmers-per-lane, and if there is, then increment the swimmers we need in the current lane by one (then at the end of the loop, we decrement the number of swimmers needed, as well as the remaineder by one. This resets the swimmers-per-lane variable, and tells the program we've accounted for an additional swimmer). 
+
+Then we go into an inner while loop that continues until the number of swimmers in the current lane (j) has reached the number of swimmers we want in the lane (swimmers-per-lane). In each of these loops, we select a random tile from the set of available patches that don't already have a swimmer on them, and then use the information from this tile to place the current swimmer.
+
+Where is the function called?
+
+The function is called in the create-or-remove-swimmers function, whihc is called from the setup function. Specifically, the function is called twice, once for each pool (with the parameters determined by the swimmer split and lane split). The function is only called if the logical allocation method is chosen. 
+
+14/04/2025
+
+To get the system to work on your own computer, you will need to create your own virtual environment. To do follow the flow chart labeled "virtual environment creation". If this is not done, then the simulation will break when clustering is attempted. 
