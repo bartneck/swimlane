@@ -50,18 +50,19 @@ globals [                       ; Declare global variables
   numberSwimmersInLaneList      ; contains a list of the swimmer distribution amoung lanes (e.g. a 4 lane pool has: lane 1 and 2 with 5 swimmers, and the rest are empty. Then the list is [5, 5, 0, 0])
   numberSwimmersInLane          ; how many swimmers are in the lane we're considering
 
-  swimmerSpeedsInEachLane           ; This is a list where each entry contains a list of swimmer speeds in the lane corrosponding with the index.
+  swimmerSpeedsLaneOne          ; Each of these contains the swimmer speeds in each lane. This allows specific statistics to be easilly derived.
+  swimmerSpeedsLaneTwo
+  swimmerSpeedsLaneThree
+  swimmerSpeedsLaneFour
+  swimmerSpeedsLaneFive
+  swimmerSpeedsLaneSix
+  swimmerSpeedsLaneSeven
+  swimmerSpeedsLaneEight
+  swimmerSpeedsLaneNine
+  swimmerSpeedsLaneTen
 
-  variabilitySpeedInPool        ; contains the range of swimmer speed in the whole pool
-  variabilitySpeedInLane        ; what's the range of the swimmer speeds in a given lane
-  variabilitySpeedInLaneList    ; List of ranges per lane
 
-  varianceSpeedInPool
-  varianceSpeedInLane
-  varianceSpeedInLaneList
 
-  averageSpeedInLane            ; average speed in the lane we're on
-  averageSpeedInLaneList        ; list of average speeds per lane
 
   missInLaneUntilNowList        ; near misses in each lane
   missInLaneUntilNow            ; near misses in the lane we're currently considering
@@ -218,20 +219,32 @@ to create-or-remove-swimmers
     ]
 
     set numberSwimmersInLaneList   [0 0 0 0 0 0 0 0 0 0]     ; there can be up to 10 lanes, and they each start off empty
-    set averageSpeedInLaneList     [0 0 0 0 0 0 0 0 0 0]
-    set variabilitySpeedInLaneList [0 0 0 0 0 0 0 0 0 0]
-    set varianceSpeedInLaneList    [0 0 0 0 0 0 0 0 0 0]
-    set swimmerSpeedsInEachLane    [[] [] [] [] [] [] [] [] [] []]
+;    set averageSpeedInLaneList     [0 0 0 0 0 0 0 0 0 0]
+;    set variabilitySpeedInLaneList [0 0 0 0 0 0 0 0 0 0]
+;    set varianceSpeedInLaneList    [0 0 0 0 0 0 0 0 0 0]
+;    set swimmerSpeedsInEachLane    [[] [] [] [] [] [] [] [] [] []]
     let i 0                                                     ; start at index 0
+    set swimmerSpeedsLaneOne   [top-speed] of turtles with [lane-ID = 1]
+    set swimmerSpeedsLaneTwo   [top-speed] of turtles with [lane-ID = 2]
+    set swimmerSpeedsLaneThree [top-speed] of turtles with [lane-ID = 3]
+    set swimmerSpeedsLaneFour  [top-speed] of turtles with [lane-ID = 4]
+    set swimmerSpeedsLaneFive  [top-speed] of turtles with [lane-ID = 5]
+    set swimmerSpeedsLaneSix   [top-speed] of turtles with [lane-ID = 6]
+    set swimmerSpeedsLaneSeven [top-speed] of turtles with [lane-ID = 7]
+    set swimmerSpeedsLaneEight [top-speed] of turtles with [lane-ID = 8]
+    set swimmerSpeedsLaneNine  [top-speed] of turtles with [lane-ID = 9]
+    set swimmerSpeedsLaneTen   [top-speed] of turtles with [lane-ID = 10]
+    print(swimmerSpeedsLaneOne)
+    print(swimmerSpeedsLaneTwo)
 
     while [i < max [lane-ID] of turtles] [                      ; While we haven't added swimmers to every required lane:
       set numberSwimmersInLaneList replace-item i numberSwimmersInLaneList (count turtles with [lane-ID = i + 1])                ; replace the 0 in the list numberSwimmersInLaneList with the number of swimmer currently in this lane
-      set averageSpeedInLaneList replace-item i averageSpeedInLaneList ((round ( 1000 * (100 / (mean [top-speed] of turtles with [lane-ID = i + 1])))) / 1000 )   ; Find the mean speed in this lane, and add this to the list of mean swim speeds
-      set variabilitySpeedInLaneList replace-item i variabilitySpeedInLaneList ( abs (round ( 1000 * ((100 / (max [top-speed] of turtles with [lane-ID = i + 1])) - (100 / (min [top-speed] of turtles with [lane-ID = i + 1]) )))) / 1000 )   ; Find the variability of the swimmer speed in this lane, and add this to the lsit of variability
-      set swimmerSpeedsInEachLane replace-item i swimmerSpeedsInEachLane ([top-speed] of turtles with [lane-ID = i + 1])
+;      set averageSpeedInLaneList replace-item i averageSpeedInLaneList ((round ( 1000 * (100 / (mean [top-speed] of turtles with [lane-ID = i + 1])))) / 1000 )   ; Find the mean speed in this lane, and add this to the list of mean swim speeds
+;      set variabilitySpeedInLaneList replace-item i variabilitySpeedInLaneList ( abs (round ( 1000 * ((100 / (max [top-speed] of turtles with [lane-ID = i + 1])) - (100 / (min [top-speed] of turtles with [lane-ID = i + 1]) )))) / 1000 )   ; Find the variability of the swimmer speed in this lane, and add this to the lsit of variability
+;      set swimmerSpeedsInEachLane replace-item i swimmerSpeedsInEachLane ([top-speed] of turtles with [lane-ID = i + 1])
       set i i + 1   ; Increment the index we're looking at
     ]
-    set variabilitySpeedInPool ( abs (round ( 1000 * ((100 / (max [top-speed] of turtles)) - (100 / (min [top-speed] of turtles) )))) / 1000 )   ; Find the variability of the swimming speeds of all the swimmers
+;    set variabilitySpeedInPool ( abs (round ( 1000 * ((100 / (max [top-speed] of turtles)) - (100 / (min [top-speed] of turtles) )))) / 1000 )   ; Find the variability of the swimming speeds of all the swimmers
   ]
 
   if current-swimmers > numberSwimmersInPool [               ; If we have too many swimmers
@@ -440,8 +453,6 @@ to go
     set crashInLaneUntilNow item (laneID - 1) crashInLaneList
     set overtakingInLaneUntilNow item (laneID - 1) overtakingInLaneList
     set numberSwimmersInLane item (laneID - 1) numberSwimmersInLaneList
-    set variabilitySpeedInLane item (laneID - 1) variabilitySpeedInLaneList
-    set averageSpeedInLane item (laneID - 1) averageSpeedInLaneList
     set numberSwimmersInLane item (laneID - 1) numberSwimmersInLaneList
     set missInLaneUntilNow item (laneID - 1) missInLaneUntilNowList
 ;    set crashAtWall 0
@@ -970,7 +981,7 @@ CHOOSER
 allocation
 allocation
 "random" "logic" "clustering"
-1
+2
 
 CHOOSER
 217
@@ -1094,7 +1105,7 @@ SWITCH
 97
 debugSetup
 debugSetup
-0
+1
 1
 -1000
 
